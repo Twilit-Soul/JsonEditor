@@ -1,0 +1,16 @@
+.errorNotification {
+    -fx-text-fill: red;
+}
+
+.scroll-pane {
+    -fx-box-border: transparent;
+    -fx-background-insets: 2;
+}
+
+.ParentObject {
+    -fx-font-weight: bold;
+}
+
+.modified {
+    -fx-background-color: lightskyblue;
+}

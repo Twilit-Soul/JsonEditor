@@ -1,0 +1,31 @@
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.layout.GridPane?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.layout.VBox?>
+<GridPane fx:controller="sample.Controller"
+		  stylesheets="/sample/sample.css"
+		  xmlns:fx="http://javafx.com/fxml" alignment="top_center" hgap="10" vgap="10">
+	<padding><Insets left="20" bottom="20" right="20" top="20"/></padding>
+	<HBox minWidth="1050" alignment="CENTER_LEFT"  GridPane.columnIndex="1" GridPane.rowIndex="1" GridPane.columnSpan="6" spacing="10">
+		<Button onAction="#retrieveJsonData">Retrieve Data</Button>
+		<TextField fx:id="filePathField" onAction="#retrieveJsonData" minWidth="780" promptText="Filepath"/>
+		<Button onAction="#findFile">Browse...</Button>
+	</HBox>
+	<ScrollPane fx:id="scrollFields" GridPane.columnIndex="2" GridPane.rowIndex="2"
+				GridPane.columnSpan="4" fitToHeight="true" minWidth="930" vbarPolicy="AS_NEEDED" hbarPolicy="NEVER">
+		<padding><Insets bottom="10" top="10"/></padding>
+		<VBox fx:id="boxOfFields" spacing="11"/>
+	</ScrollPane>
+	<HBox GridPane.columnIndex="1" GridPane.rowIndex="3" GridPane.columnSpan="6" spacing="10">
+		<Label fx:id="notificationField" styleClass="errorNotification"/>
+	</HBox>
+	<HBox minWidth="880" alignment="CENTER"  GridPane.columnIndex="1" GridPane.rowIndex="4" GridPane.columnSpan="6" spacing="10">
+		<Button fx:id="saveButton" onAction="#saveObjects" visible="false" disable="true">Save</Button>
+		<Button fx:id="discardButton" onAction="#discardChanges" visible="false" disable="true">Discard Changes</Button>
+	</HBox>
+</GridPane>
