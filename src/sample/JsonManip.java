@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
@@ -21,23 +22,32 @@ import com.google.gson.JsonPrimitive;
  */
 class JsonManip {
 	/**
-	 * JsonPrimitive values are saved so they can be edited at will via the UI.
+	 * Json values are saved so they can be edited at will via the UI.
+	 * These are most often primitives, but could be nulls.
 	 */
-	private List<JsonPrimitive> primitives  = new ArrayList<>();
+	final private List<JsonPrimitive> primitives  = new ArrayList<>();
 	/**
 	 * Original value is saved so we can have UI notifications on "modified" values,
 	 * and to reset values to their original state.
 	 */
-	private List<String>        originalVal = new ArrayList<>();
+	final private List<String>        originalVal = new ArrayList<>();
 
 	/**
 	 * We deserialize everything when we save to file.
 	 */
-	private List<JsonObject> elements;
+	final private List<JsonObject> elements;
 	/**
 	 * Our link back to the UI.
 	 */
-	private Controller       controller;
+	final private Controller       controller;
+	/**
+	 * For labeling on the UI.
+	 */
+	final private String			fileName;
+	/**
+	 * For preservation of comments/spacing.
+	 */
+	private List<String> originalText = new ArrayList<>();
 
 	/**
 	 * Gets the json java objects from the file, and remembers the UI controller.
@@ -45,6 +55,7 @@ class JsonManip {
 	JsonManip(Controller controller, Path filePath) throws IOException {
 		elements = getGson(filePath);
 		this.controller = controller;
+		this.fileName = filePath.getFileName().toString();
 	}
 
 	/**
@@ -57,35 +68,37 @@ class JsonManip {
 	/**
 	 * Combines all of the java objects into a single json string.
 	 */
-	String getJson() {
-		String json = "";
+	private String getJson() {
 		Gson gson = new Gson();
-		for (int i = 0; i < elements.size(); i++) {
-			json += gson.toJson(elements.get(i));
-			if (i < elements.size() - 1) {
+		String json = "";
+
+		for (int i = 0, j = 0; i < originalText.size(); i++) {
+			String originalLine = originalText.get(i);
+			json += originalLine.startsWith("{") ? gson.toJson(elements.get(j++)) : originalLine;
+			if (i < originalText.size() - 1) {
 				json += "\n";
 			}
 		}
+
 		return json;
 	}
 
 	/**
-	 * Go through each Json element and add it, using the line number as a label.
-	 * Note: it's the line of the object, not the line in the file. Comments can distort this.
+	 * Go through each Json element and add it, using the file name as a label.
 	 */
 	void addElementsToUI() {
 		for (int i = 0; i < elements.size(); i++) {
-			addJson("Line[" + i + "]", elements.get(i));
+			addJson(fileName+"[" + i + "]", elements.get(i));
 		}
 	}
 
 	/**
-	 * Get the json java objects from the given filepath.
+	 * Get the gson java objects from the given filepath.
 	 */
 	private List<JsonObject> getGson(Path filePath) throws IOException {
 		JsonParser parser = new JsonParser();
-		List<String> fileContents = Files.readAllLines(filePath);
-		return fileContents.stream().filter(l -> l.startsWith("{")).map(l -> (JsonObject) parser.parse(l)).collect(Collectors.toList());
+		originalText = Files.readAllLines(filePath);
+		return originalText.stream().filter(l -> l.startsWith("{")).map(l -> (JsonObject) parser.parse(l)).collect(Collectors.toList());
 	}
 
 	/**
@@ -99,6 +112,8 @@ class JsonManip {
 			addObject(key, element.getAsJsonObject());
 		} else if (element.isJsonPrimitive()) {
 			addPrimitive(key, element.getAsJsonPrimitive());
+		} else if (element.isJsonNull()) {
+			addNull(key, element.getAsJsonNull());
 		} else {
 			System.out.println("Unknown json type: " + key);
 		}
@@ -123,6 +138,15 @@ class JsonManip {
 	}
 
 	/**
+	 * Add null to the UI, and give them the hashcode to identify our primitive with, should they need to change the value.
+	 */
+	private void addNull(String key, JsonNull jsonNull) {
+		primitives.add(new JsonPrimitive("null"));
+		originalVal.add(null);
+		controller.addPair(key, "null", primitives.size() - 1);
+	}
+
+	/**
 	 * Returns the value this primitive had when it was loaded.
 	 */
 	String getOriginalVal(int index) {
@@ -136,12 +160,12 @@ class JsonManip {
 		JsonPrimitive primitive = primitives.get(index);
 		if (primitive.isBoolean()) {
 			primitive.setValue(newVal.equalsIgnoreCase("true"));
-			return;
-		}
-		try {
-			primitive.setValue(Integer.parseInt(newVal));
-		} catch (NumberFormatException e1) {
-			primitive.setValue(newVal);
+		} else {
+			try {
+				primitive.setValue(Integer.parseInt(newVal));
+			} catch (NumberFormatException e1) {
+				primitive.setValue(newVal);
+			}
 		}
 	}
 
@@ -154,5 +178,9 @@ class JsonManip {
 			addJson(pair.getKey(), pair.getValue());
 		}
 		controller.addBoldLabel("}~" + key);
+	}
+
+	void saveData(Path filePath) throws IOException {
+		Files.write(filePath, getJson().getBytes());
 	}
 }

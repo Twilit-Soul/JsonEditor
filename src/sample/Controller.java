@@ -1,5 +1,6 @@
 package sample;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
@@ -83,8 +84,12 @@ public class Controller {
 	public void findFile() {
 		FileChooser fileChooser = new FileChooser();
 		fileChooser.setTitle("Open Resource File");
-		filePathField.setText(fileChooser.showOpenDialog(stage).getAbsolutePath());
-		retrieveJsonData();
+		File file = fileChooser.showOpenDialog(stage);
+		if (file != null) {
+			String filePath = file.getAbsolutePath();
+			filePathField.setText(filePath);
+			retrieveJsonData();
+		}
 	}
 
 	/**
@@ -92,12 +97,10 @@ public class Controller {
 	 * from the modified fields.
 	 */
 	public void saveObjects() {
-		//Combine to individual lines in one string
-		String json = jsonManip.getJson();
 
 		//Save to file
 		try {
-			Files.write(filePath, json.getBytes());
+			jsonManip.saveData(filePath);
 		} catch (IOException e) {
 			notificationField.setText("Failed to save file: " + e);
 			return;
@@ -118,6 +121,9 @@ public class Controller {
 	public void discardChanges() {
 		for (Map.Entry<Integer, TextField> entry : textFields.entrySet()) {
 			String originalText = jsonManip.getOriginalVal(entry.getKey());
+			if (originalText == null) {
+				originalText = "null";
+			}
 			entry.getValue().setText(originalText);
 		}
 		validateFields();
@@ -125,6 +131,10 @@ public class Controller {
 
 	//TODO: add a better way to visually group things in general? Sub-objects, different top-level objects
 
+	/**
+	 * Inserts a label with bold css class to the UI, so we can help identify where objects begin/end.
+	 * Could also be used for other means.
+	 */
 	void addBoldLabel(String label) {
 		Label openObjectLabel = new Label(label);
 		openObjectLabel.getStyleClass().add("ParentObject");
@@ -143,7 +153,8 @@ public class Controller {
 		textField.setMinWidth(890);
 		textField.setOnAction(e -> saveObjects()); //If you hit enter, save
 		textField.textProperty().addListener((observable, oldValue, newValue) -> {
-			if (!jsonManip.getOriginalVal(index).equals(newValue)) {
+			//Check if values were equal, or if the text is "null" and the original value was a null value
+			if (!(newValue.equals("null") && null == jsonManip.getOriginalVal(index)) && !newValue.equals(jsonManip.getOriginalVal(index))) {
 				if (!textField.getStyleClass().contains("modified")) {
 					textField.getStyleClass().add("modified");
 				}
