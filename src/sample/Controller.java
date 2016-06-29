@@ -13,6 +13,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
@@ -28,54 +29,62 @@ public class Controller {
 	public  Label      notificationField;
 	public  Button     saveButton;
 	public  Button     discardButton;
-	private JsonManip  jsonManip;
+	private IJsonManip jsonManip;
 	private Path       filePath;
 	private Stage      stage;
 	private Map<Integer, TextField> textFields = new HashMap<>();
+
+	//And now I'm beginning to understand how feature creep happens.
+
+	//TODO: make tabs. Could have multiple files open at once.
+	//TODO: add a way to introduce entirely new fields to an object/file
+	//TODO: add a way to duplicate an existing line so we can modify the next one a bit
+	//TODO: add a way to page through the various lines of a file instead of scrolling to each one
+	//TODO: pipe dream -> a small button for each object to copy the object's json to clipboard
+	//TODO: extra ridiculous pipe dream -> make an expandable/collapsable tree to make things presented even more super clearly
 
 	/**
 	 * Tries to load the json objects from file, and updates the UI for possible failures or for success.
 	 * Won't load if there is unsaved modified data.
 	 */
 	public void retrieveJsonData() {
-		notificationField.setText("");
+		setNotification("");
 
 		if (savingRequired()) {
-			notificationField.setText("You must save the current file or discard changes before opening a new file.");
+			setNotification("You must save the current file or discard changes before opening a new file.");
 			return;
 		}
 
 		try {
 			filePath = Paths.get(filePathField.getText());
 		} catch (InvalidPathException e) {
-			notificationField.setText("Invalid path: " + e.getMessage());
+			setNotification("Invalid path: " + e.getMessage());
 			return;
 		}
 
 		//Make sure file exists
 		if (Files.notExists(filePath)) {
-			notificationField.setText("Resource file doesn't exist.");
+			setNotification("Resource file doesn't exist.");
 			return;
 		}
 
 		//Make sure we can get the data out
 		try {
-			jsonManip = new JsonManip(this, filePath);
+			jsonManip = new JsonManipGsonImpl(this, filePath);
 		} catch (IOException e) {
-			notificationField.setText("Failed to retrieve data from file: " + e);
+			setNotification("Failed to retrieve data from file: " + e);
 			return;
 		}
 
 		//Make sure we actually got something
 		if (jsonManip.isEmpty()) {
-			notificationField.setText("Didn't find any json objects in file.");
+			setNotification("Didn't find any json objects in file.");
 			return;
 		}
 
 		//Start working through the fields, and label the lines we're looking at
 		boxOfFields.getChildren().clear();
 		jsonManip.addElementsToUI();
-		validateFields();
 	}
 
 	/**
@@ -97,12 +106,11 @@ public class Controller {
 	 * from the modified fields.
 	 */
 	public void saveObjects() {
-
 		//Save to file
 		try {
 			jsonManip.saveData(filePath);
 		} catch (IOException e) {
-			notificationField.setText("Failed to save file: " + e);
+			setNotification("Failed to save file: " + e);
 			return;
 		}
 
@@ -111,7 +119,7 @@ public class Controller {
 			textField.getStyleClass().remove("modified");
 		}
 
-		validateFields();
+		validateAllFields();
 		retrieveJsonData();
 	}
 
@@ -126,19 +134,32 @@ public class Controller {
 			}
 			entry.getValue().setText(originalText);
 		}
-		validateFields();
+		boxOfFields.getChildren().clear();
+		jsonManip.discardElementsChanges();
 	}
-
-	//TODO: add a better way to visually group things in general? Sub-objects, different top-level objects
 
 	/**
 	 * Inserts a label with bold css class to the UI, so we can help identify where objects begin/end.
-	 * Could also be used for other means.
 	 */
-	void addBoldLabel(String label) {
-		Label openObjectLabel = new Label(label);
-		openObjectLabel.getStyleClass().add("ParentObject");
-		boxOfFields.getChildren().add(openObjectLabel);
+	void addObjectLabel(String labelText) {
+		boxOfFields.getChildren().add(makeLabelBox(labelText));
+	}
+
+	/**
+	 * Inserts a label with bold css class to the UI, so we can help identify where objects begin/end.
+	 * Also adds a button to duplicate the object.
+	 */
+	void addObjectLabel(String labelText, int index) {
+		HBox labelBox = makeLabelBox(labelText);
+		Button duplicateButton = new Button("Duplicate Line");
+		duplicateButton.setOnAction(e -> {
+			//TODO: fix modified fields losing modified status when a line is duplicated
+			jsonManip.duplicateAndAddToList(index);
+			boxOfFields.getChildren().clear();
+			jsonManip.addElementsToUI();
+		});
+		labelBox.getChildren().add(duplicateButton);
+		boxOfFields.getChildren().add(labelBox);
 	}
 
 	/**
@@ -153,17 +174,8 @@ public class Controller {
 		textField.setMinWidth(890);
 		textField.setOnAction(e -> saveObjects()); //If you hit enter, save
 		textField.textProperty().addListener((observable, oldValue, newValue) -> {
-			//Check if values were equal, or if the text is "null" and the original value was a null value
-			if (!(newValue.equals("null") && null == jsonManip.getOriginalVal(index)) && !newValue.equals(jsonManip.getOriginalVal(index))) {
-				if (!textField.getStyleClass().contains("modified")) {
-					textField.getStyleClass().add("modified");
-				}
-				jsonManip.setPairValue(index, newValue);
-			} else {
-				textField.getStyleClass().remove("modified");
-				jsonManip.setPairValue(index, newValue);
-			}
-			validateFields();
+			validateTextField(textField, index);
+			validateAllFields();
 		});
 		textFields.put(index, textField);
 		pairBox.getChildren().addAll(fieldLabel, textField);
@@ -178,9 +190,34 @@ public class Controller {
 	}
 
 	/**
+	 * Checks if the text field has been modified, and if it has, gives it the "modified" status.
+	 */
+	private void validateTextField(TextField textField, int index) {
+		//Check if values were equal, or if the text is "null" and the original value was a null value
+		String currentValue = textField.getText(), originalValue = jsonManip.getOriginalVal(index);
+		if (!(currentValue.equals("null") && null == originalValue) && !currentValue.equals(originalValue)) {
+			if (!textField.getStyleClass().contains("modified")) {
+				textField.getStyleClass().add("modified");
+			}
+			jsonManip.setPairValue(index, currentValue);
+		} else {
+			textField.getStyleClass().remove("modified");
+			jsonManip.setPairValue(index, currentValue);
+		}
+	}
+
+	private HBox makeLabelBox(String labelText) {
+		HBox labelBox = new HBox();
+		Label openObjectLabel = new Label(labelText);
+		openObjectLabel.getStyleClass().add("ParentObject");
+		labelBox.getChildren().add(openObjectLabel);
+		return labelBox;
+	}
+
+	/**
 	 * Disable/enable buttons/fields based on whether or not saving is required.
 	 */
-	private void validateFields() {
+	void validateAllFields() {
 		boolean dataRetrieved = !jsonManip.isEmpty();
 		saveButton.setVisible(dataRetrieved);
 		discardButton.setVisible(dataRetrieved);
@@ -198,6 +235,10 @@ public class Controller {
 				return true;
 			}
 		}
-		return false;
+		return jsonManip != null && jsonManip.haveElementsChanged(); //Gets called during initialization
+	}
+
+	void setNotification(String notification) {
+		notificationField.setText(notification);
 	}
 }
