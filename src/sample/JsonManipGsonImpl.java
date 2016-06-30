@@ -55,6 +55,8 @@ class JsonManipGsonImpl implements IJsonManip {
 
 	//TODO: just let them say "verifyAddWalletWithProperData" and it finds it automatically.
 	//Right now we use a custom gson, and that's certainly not ideal.
+	//TODO: I might make a custom object that holds the JsonObjects/primitives at some point.
+	//It would allow me to solve the issue below, and it would allow me to track "modified" and "original value" status more easily.
 	//TODO: save the JsonObjects that hold the primitives (via HashMap I guess) and modify the objects themselves...even though it's bullshit!
 	//The problem with this is making it clear on the UI as an alternative means of getting what we want...
 	//Maybe let them set the parent directory of the project somewhere, and it recursively searches, offering a
@@ -191,9 +193,9 @@ class JsonManipGsonImpl implements IJsonManip {
 			json += "\n";
 			for (; j < elements.size(); j++) {
 				json += gson.toJson(elements.get(j));
-			}
-			if (j < elements.size() - 1) {
-				json += "\n;";
+				if (j < elements.size() - 1) {
+					json += "\n";
+				}
 			}
 		}
 
@@ -252,7 +254,7 @@ class JsonManipGsonImpl implements IJsonManip {
 		Optional<Integer> index = getIndexOfObject(object);
 		String labelText = key + "~{";
 		if (index.isPresent()) {
-			controller.addObjectLabel(labelText, index.get());
+			controller.addObjectLabelWithButton(labelText, index.get());
 		} else {
 			controller.addObjectLabel(labelText); //Probably a sub object. I see no need to copy those
 		}
@@ -263,6 +265,9 @@ class JsonManipGsonImpl implements IJsonManip {
 		controller.addObjectLabel("}~" + key);
 	}
 
+	/**
+	 * Gets the index of an object that exists in our elements list.
+	 */
 	private Optional<Integer> getIndexOfObject(JsonObject object) {
 		for (int i = 0; i < elements.size(); i++) {
 			if (elements.get(i).equals(object)) {

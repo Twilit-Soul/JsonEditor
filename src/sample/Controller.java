@@ -9,6 +9,7 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
+import javafx.geometry.Insets;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
@@ -149,8 +150,10 @@ public class Controller {
 	 * Inserts a label with bold css class to the UI, so we can help identify where objects begin/end.
 	 * Also adds a button to duplicate the object.
 	 */
-	void addObjectLabel(String labelText, int index) {
+	void addObjectLabelWithButton(String labelText, int index) {
 		HBox labelBox = makeLabelBox(labelText);
+		labelBox.setSpacing(10);
+		labelBox.setPadding(new Insets(2, 0, 0, 0));
 		Button duplicateButton = new Button("Duplicate Line");
 		duplicateButton.setOnAction(e -> {
 			//TODO: fix modified fields losing modified status when a line is duplicated
@@ -159,6 +162,7 @@ public class Controller {
 			jsonManip.addElementsToUI();
 		});
 		labelBox.getChildren().add(duplicateButton);
+		HBox.setMargin(duplicateButton, new Insets(-2, 0, 0, 0));
 		boxOfFields.getChildren().add(labelBox);
 	}
 
