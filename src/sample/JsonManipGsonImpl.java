@@ -58,6 +58,7 @@ class JsonManipGsonImpl implements IJsonManip {
 	//TODO: I might make a custom object that holds the JsonObjects/primitives at some point.
 	//It would allow me to solve the issue below, and it would allow me to track "modified" and "original value" status more easily.
 	//TODO: save the JsonObjects that hold the primitives (via HashMap I guess) and modify the objects themselves...even though it's bullshit!
+	//TODO: creating that hashmap is even more important than I thought, as it would allow me to genuinely change primitives to null.
 	//The problem with this is making it clear on the UI as an alternative means of getting what we want...
 	//Maybe let them set the parent directory of the project somewhere, and it recursively searches, offering a
 	//dropdown of auto-fill file paths to choose? That sounds pretty damn fancy.
@@ -178,13 +179,12 @@ class JsonManipGsonImpl implements IJsonManip {
 	 * Combines all of the java objects into a single json string.
 	 */
 	private String getJson() {
-		Gson gson = new Gson();
 		String json = "";
 
 		int j = 0;
 		for (int i = 0; i < originalText.size(); i++) {
 			String originalLine = originalText.get(i);
-			json += originalLine.startsWith("{") ? gson.toJson(elements.get(j++)) : originalLine;
+			json += originalLine.startsWith("{") ? convertToJson(elements.get(j++)) : originalLine;
 			if (i < originalText.size() - 1) {
 				json += "\n";
 			}
@@ -192,7 +192,7 @@ class JsonManipGsonImpl implements IJsonManip {
 		if (j < elements.size()) {
 			json += "\n";
 			for (; j < elements.size(); j++) {
-				json += gson.toJson(elements.get(j));
+				json += convertToJson(elements.get(j));
 				if (j < elements.size() - 1) {
 					json += "\n";
 				}
@@ -200,6 +200,11 @@ class JsonManipGsonImpl implements IJsonManip {
 		}
 
 		return json;
+	}
+
+	private String convertToJson(JsonElement element) {
+		Gson gson = new Gson();
+		return gson.toJson(element);
 	}
 
 	/**

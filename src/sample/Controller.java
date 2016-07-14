@@ -38,6 +38,7 @@ public class Controller {
 	//And now I'm beginning to understand how feature creep happens.
 
 	//TODO: make tabs. Could have multiple files open at once.
+	//TODO: make a way to compare two lines?
 	//TODO: add a way to introduce entirely new fields to an object/file
 	//TODO: add a way to duplicate an existing line so we can modify the next one a bit
 	//TODO: add a way to page through the various lines of a file instead of scrolling to each one
@@ -200,14 +201,14 @@ public class Controller {
 		//Check if values were equal, or if the text is "null" and the original value was a null value
 		String currentValue = textField.getText(), originalValue = jsonManip.getOriginalVal(index);
 		if (!(currentValue.equals("null") && null == originalValue) && !currentValue.equals(originalValue)) {
+			//If the value is indeed changed
 			if (!textField.getStyleClass().contains("modified")) {
 				textField.getStyleClass().add("modified");
 			}
-			jsonManip.setPairValue(index, currentValue);
 		} else {
 			textField.getStyleClass().remove("modified");
-			jsonManip.setPairValue(index, currentValue);
 		}
+		jsonManip.setPairValue(index, currentValue);
 	}
 
 	private HBox makeLabelBox(String labelText) {
