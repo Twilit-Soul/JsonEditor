@@ -259,7 +259,7 @@ class JsonManipGsonImpl implements IJsonManip {
 		Optional<Integer> index = getIndexOfObject(object);
 		String labelText = key + "~{";
 		if (index.isPresent()) {
-			controller.addObjectLabelWithButton(labelText, index.get());
+			controller.addObjectLabelWithDuplicateButton(labelText, index.get());
 		} else {
 			controller.addObjectLabel(labelText); //Probably a sub object. I see no need to copy those
 		}

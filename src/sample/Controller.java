@@ -37,6 +37,7 @@ public class Controller {
 
 	//And now I'm beginning to understand how feature creep happens.
 
+	//TODO: make a way to delete a field. This would be super useful in trimming excessive json files.
 	//TODO: make tabs. Could have multiple files open at once.
 	//TODO: make a way to compare two lines?
 	//TODO: add a way to introduce entirely new fields to an object/file
@@ -151,7 +152,7 @@ public class Controller {
 	 * Inserts a label with bold css class to the UI, so we can help identify where objects begin/end.
 	 * Also adds a button to duplicate the object.
 	 */
-	void addObjectLabelWithButton(String labelText, int index) {
+	void addObjectLabelWithDuplicateButton(String labelText, int index) {
 		HBox labelBox = makeLabelBox(labelText);
 		labelBox.setSpacing(10);
 		labelBox.setPadding(new Insets(2, 0, 0, 0));
