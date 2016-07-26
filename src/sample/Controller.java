@@ -41,7 +41,6 @@ public class Controller {
 	//TODO: make tabs. Could have multiple files open at once.
 	//TODO: make a way to compare two lines?
 	//TODO: add a way to introduce entirely new fields to an object/file
-	//TODO: add a way to duplicate an existing line so we can modify the next one a bit
 	//TODO: add a way to page through the various lines of a file instead of scrolling to each one
 	//TODO: pipe dream -> a small button for each object to copy the object's json to clipboard
 	//TODO: extra ridiculous pipe dream -> make an expandable/collapsable tree to make things presented even more super clearly
