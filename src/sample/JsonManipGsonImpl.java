@@ -33,10 +33,6 @@ class JsonManipGsonImpl implements IJsonManip {
 	 */
 	final private List<String>        originalVal = new ArrayList<>();
 	/**
-	 * So we can discard changes and get back to this if we add/remove any.
-	 */
-	private List<JsonObject> originalElements;
-	/**
 	 * Our link back to the UI.
 	 */
 	final private Controller       controller;
@@ -44,6 +40,10 @@ class JsonManipGsonImpl implements IJsonManip {
 	 * For labeling on the UI.
 	 */
 	final private String           fileName;
+	/**
+	 * So we can discard changes and get back to this if we add/remove any.
+	 */
+	private       List<JsonObject> originalElements;
 	/**
 	 * We deserialize everything when we save to file.
 	 */
@@ -181,6 +181,7 @@ class JsonManipGsonImpl implements IJsonManip {
 	private String getJson() {
 		String json = "";
 
+		//Goal here is to add the new lines of json (replacing the old) without interfering with any content lines
 		int j = 0;
 		for (int i = 0; i < originalText.size(); i++) {
 			String originalLine = originalText.get(i);
@@ -189,6 +190,7 @@ class JsonManipGsonImpl implements IJsonManip {
 				json += "\n";
 			}
 		}
+		//This part should take care of adding any entirely new lines
 		if (j < elements.size()) {
 			json += "\n";
 			for (; j < elements.size(); j++) {
