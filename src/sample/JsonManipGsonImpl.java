@@ -53,18 +53,15 @@ class JsonManipGsonImpl implements IJsonManip {
 	 * For preservation of comments/spacing when we're writing back to file.
 	 */
 	private List<String> originalText = new ArrayList<>();
-	private Map<JsonPrimitive, JsonObject> objectList = new HashMap<>();
-	private Map<JsonPrimitive, String> fieldList = new HashMap<>();
+	private Map<JsonElement, JsonObject> objectList = new HashMap<>();
+	private Map<JsonElement, String> fieldList = new HashMap<>();
 
 	//TODO: just let them say "verifyAddWalletWithProperData" and it finds it automatically.
-	//Right now we use a custom gson, and that's certainly not ideal.
-	//TODO: I might make a custom object that holds the JsonObjects/primitives at some point.
-	//It would allow me to solve the issue below, and it would allow me to track "modified" and "original value" status more easily.
-	//TODO: save the JsonObjects that hold the primitives (via HashMap I guess) and modify the objects themselves...even though it's bullshit!
-	//TODO: creating that hashmap is even more important than I thought, as it would allow me to genuinely change primitives to null.
 	//The problem with this is making it clear on the UI as an alternative means of getting what we want...
 	//Maybe let them set the parent directory of the project somewhere, and it recursively searches, offering a
 	//dropdown of auto-fill file paths to choose? That sounds pretty damn fancy.
+	//TODO: I might make a custom object that holds the JsonObjects/primitives at some point. Edit: why? I can't remember
+	//It would allow me to track "modified" and "original value" status more easily.
 
 	/**
 	 * Gets the json java objects from the file, and remembers the UI controller.
@@ -98,25 +95,31 @@ class JsonManipGsonImpl implements IJsonManip {
 	@Override
 	public void setPairValue(int index, String newVal) {
 		final JsonPrimitive primitive = primitives.get(index);
+		final JsonElement newPrimitive = getNewPrimitive(primitive, newVal);
 		final String key = fieldList.get(primitive);
 		final JsonObject parent = objectList.get(primitive);
-		JsonPrimitive newPrimitive = null;
-		if (primitive.isBoolean()) {
-			newPrimitive = new JsonPrimitive(newVal.equalsIgnoreCase("true"));
-		} else if (primitive.isNumber()) {
-			try {
-				newPrimitive = new JsonPrimitive(Integer.parseInt(newVal));
-			} catch (NumberFormatException e) {
-				//We'll assign it as a string later, then.
-			}
-		}
-		if (newPrimitive == null) {
-			newPrimitive = new JsonPrimitive(newVal);
-		}
 
 		fieldList.put(newPrimitive, key);
 		objectList.put(newPrimitive, parent);
 		parent.add(key, newPrimitive);
+	}
+
+
+	private JsonElement getNewPrimitive(JsonPrimitive original, String newVal) {
+		if (newVal.equals("null")) {
+			return JsonNull.INSTANCE;
+		}
+		if (original.isBoolean()) {
+			return new JsonPrimitive(newVal.equalsIgnoreCase("true"));
+		} else if (original.isNumber()) {
+			try {
+				return new JsonPrimitive(Integer.parseInt(newVal));
+			} catch (NumberFormatException e) {
+				//We'll assign it as a string later, then.
+			}
+		}
+
+		return new JsonPrimitive(newVal);
 	}
 
 	/**
