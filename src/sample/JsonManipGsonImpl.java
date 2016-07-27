@@ -52,8 +52,6 @@ class JsonManipGsonImpl implements IJsonManip {
 	//The problem with this is making it clear on the UI as an alternative means of getting what we want...
 	//Maybe let them set the parent directory of the project somewhere, and it recursively searches, offering a
 	//dropdown of auto-fill file paths to choose? That sounds pretty damn fancy.
-	//TODO: I might make a custom object that holds the JsonObjects/primitives at some point. Edit: why? I can't remember
-	//It would allow me to track "modified" and "original value" status more easily.
 
 	/**
 	 * Gets the json java objects from the file, and remembers the UI controller.
