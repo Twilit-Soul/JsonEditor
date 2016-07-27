@@ -52,9 +52,9 @@ class JsonManipGsonImpl implements IJsonManip {
 	/**
 	 * For preservation of comments/spacing when we're writing back to file.
 	 */
-	private List<String> originalText = new ArrayList<>();
-	private Map<JsonElement, JsonObject> objectList = new HashMap<>();
-	private Map<JsonElement, String> fieldList = new HashMap<>();
+	private List<String>                 originalText = new ArrayList<>();
+	private Map<JsonElement, JsonObject> objectList   = new HashMap<>();
+	private Map<JsonElement, String>     fieldList    = new HashMap<>();
 
 	//TODO: just let them say "verifyAddWalletWithProperData" and it finds it automatically.
 	//The problem with this is making it clear on the UI as an alternative means of getting what we want...
@@ -104,7 +104,10 @@ class JsonManipGsonImpl implements IJsonManip {
 		parent.add(key, newPrimitive);
 	}
 
-
+	/**
+	 * Returns a new JsonPrimitive of an appropriate type, which might actually be JsonNull instead of
+	 * JsonPrimitive.
+	 */
 	private JsonElement getNewPrimitive(JsonPrimitive original, String newVal) {
 		if (newVal.equals("null")) {
 			return JsonNull.INSTANCE;
