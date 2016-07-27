@@ -21,7 +21,7 @@ public class Main extends Application {
 	public void start(Stage primaryStage) throws Exception {
 		FXMLLoader loader = new FXMLLoader(getClass().getResource("sample.fxml"));
 		Parent root = loader.load();
-		Controller controller = (Controller)loader.getController();
+		Controller controller = loader.getController();
 		controller.setStage(primaryStage);
 		primaryStage.setTitle("Json Editor");
 		primaryStage.setScene(new Scene(root, WIDTH, HEIGHT));

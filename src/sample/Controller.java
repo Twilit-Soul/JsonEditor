@@ -179,7 +179,7 @@ public class Controller {
 		textField.setMinWidth(890);
 		textField.setOnAction(e -> saveObjects()); //If you hit enter, save
 		textField.textProperty().addListener((observable, oldValue, newValue) -> {
-			validateTextField(textField, index);
+			checkModified(textField, index);
 			validateAllFields();
 		});
 		textFields.put(index, textField);
@@ -197,7 +197,7 @@ public class Controller {
 	/**
 	 * Checks if the text field has been modified, and if it has, gives it the "modified" status.
 	 */
-	private void validateTextField(TextField textField, int index) {
+	private void checkModified(TextField textField, int index) {
 		//Check if values were equal, or if the text is "null" and the original value was a null value
 		String currentValue = textField.getText(), originalValue = jsonManip.getOriginalVal(index);
 		if (!(currentValue.equals("null") && null == originalValue) && !currentValue.equals(originalValue)) {

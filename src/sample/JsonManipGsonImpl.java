@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -49,9 +50,11 @@ class JsonManipGsonImpl implements IJsonManip {
 	 */
 	private       List<JsonObject> elements;
 	/**
-	 * For preservation of comments/spacing.
+	 * For preservation of comments/spacing when we're writing back to file.
 	 */
 	private List<String> originalText = new ArrayList<>();
+	private Map<JsonPrimitive, JsonObject> objectList = new HashMap<>();
+	private Map<JsonPrimitive, String> fieldList = new HashMap<>();
 
 	//TODO: just let them say "verifyAddWalletWithProperData" and it finds it automatically.
 	//Right now we use a custom gson, and that's certainly not ideal.
@@ -94,16 +97,26 @@ class JsonManipGsonImpl implements IJsonManip {
 	 */
 	@Override
 	public void setPairValue(int index, String newVal) {
-		JsonPrimitive primitive = primitives.get(index);
+		final JsonPrimitive primitive = primitives.get(index);
+		final String key = fieldList.get(primitive);
+		final JsonObject parent = objectList.get(primitive);
+		JsonPrimitive newPrimitive = null;
 		if (primitive.isBoolean()) {
-			primitive.setValue(newVal.equalsIgnoreCase("true"));
-		} else {
+			newPrimitive = new JsonPrimitive(newVal.equalsIgnoreCase("true"));
+		} else if (primitive.isNumber()) {
 			try {
-				primitive.setValue(Integer.parseInt(newVal));
-			} catch (NumberFormatException e1) {
-				primitive.setValue(newVal);
+				newPrimitive = new JsonPrimitive(Integer.parseInt(newVal));
+			} catch (NumberFormatException e) {
+				//We'll assign it as a string later, then.
 			}
 		}
+		if (newPrimitive == null) {
+			newPrimitive = new JsonPrimitive(newVal);
+		}
+
+		fieldList.put(newPrimitive, key);
+		objectList.put(newPrimitive, parent);
+		parent.add(key, newPrimitive);
 	}
 
 	/**
@@ -204,9 +217,9 @@ class JsonManipGsonImpl implements IJsonManip {
 		return json;
 	}
 
+	//Shrug
 	private String convertToJson(JsonElement element) {
-		Gson gson = new Gson();
-		return gson.toJson(element);
+		return new Gson().toJson(element);
 	}
 
 	/**
@@ -267,6 +280,10 @@ class JsonManipGsonImpl implements IJsonManip {
 		}
 		//If it's not present, it's probably a sub object, which isn't allowed for copies (I see no reason for it)
 		for (Map.Entry<String, JsonElement> pair : object.entrySet()) {
+			if (pair.getValue().isJsonPrimitive()) {
+				fieldList.put(pair.getValue().getAsJsonPrimitive(), pair.getKey());
+				objectList.put(pair.getValue().getAsJsonPrimitive(), object);
+			}
 			addJson(pair.getKey(), pair.getValue());
 		}
 		controller.addObjectLabel("}~" + key);
