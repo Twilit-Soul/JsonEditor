@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -13,7 +12,6 @@ import java.util.stream.Collectors;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
-import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
@@ -24,15 +22,10 @@ import com.google.gson.JsonPrimitive;
  */
 class JsonManipGsonImpl implements IJsonManip {
 	/**
-	 * Json values are saved so they can be edited at will via the UI.
-	 * These are most often primitives, but could be nulls.
-	 */
-	final private List<JsonPrimitive> primitives  = new ArrayList<>();
-	/**
 	 * Original value is saved so we can have UI notifications on "modified" values,
 	 * and to reset values to their original state.
 	 */
-	final private List<String>        originalVal = new ArrayList<>();
+	final private List<String> originalVal = new ArrayList<>();
 	/**
 	 * Our link back to the UI.
 	 */
@@ -52,9 +45,8 @@ class JsonManipGsonImpl implements IJsonManip {
 	/**
 	 * For preservation of comments/spacing when we're writing back to file.
 	 */
-	private List<String>                 originalText = new ArrayList<>();
-	private Map<JsonElement, JsonObject> objectList   = new HashMap<>();
-	private Map<JsonElement, String>     fieldList    = new HashMap<>();
+	private List<String>              originalText         = new ArrayList<>();
+	private List<JsonEditorPrimitive> jsonEditorPrimitives = new ArrayList<>();
 
 	//TODO: just let them say "verifyAddWalletWithProperData" and it finds it automatically.
 	//The problem with this is making it clear on the UI as an alternative means of getting what we want...
@@ -94,35 +86,7 @@ class JsonManipGsonImpl implements IJsonManip {
 	 */
 	@Override
 	public void setPairValue(int index, String newVal) {
-		final JsonPrimitive primitive = primitives.get(index);
-		final JsonElement newPrimitive = getNewPrimitive(primitive, newVal);
-		final String key = fieldList.get(primitive);
-		final JsonObject parent = objectList.get(primitive);
-
-		fieldList.put(newPrimitive, key);
-		objectList.put(newPrimitive, parent);
-		parent.add(key, newPrimitive);
-	}
-
-	/**
-	 * Returns a new JsonPrimitive of an appropriate type, which might actually be JsonNull instead of
-	 * JsonPrimitive.
-	 */
-	private JsonElement getNewPrimitive(JsonPrimitive original, String newVal) {
-		if (newVal.equals("null")) {
-			return JsonNull.INSTANCE;
-		}
-		if (original.isBoolean()) {
-			return new JsonPrimitive(newVal.equalsIgnoreCase("true"));
-		} else if (original.isNumber()) {
-			try {
-				return new JsonPrimitive(Integer.parseInt(newVal));
-			} catch (NumberFormatException e) {
-				//We'll assign it as a string later, then.
-			}
-		}
-
-		return new JsonPrimitive(newVal);
+		jsonEditorPrimitives.get(index).setNew(newVal);
 	}
 
 	/**
@@ -240,7 +204,7 @@ class JsonManipGsonImpl implements IJsonManip {
 		} else if (element.isJsonPrimitive()) {
 			addPrimitive(key, element.getAsJsonPrimitive());
 		} else if (element.isJsonNull()) {
-			addNull(key, element.getAsJsonNull());
+			//Do nothing? If it's null it probably shouldn't even be in the file.
 		} else {
 			controller.setNotification("Unknown json type: " + key);
 		}
@@ -259,18 +223,13 @@ class JsonManipGsonImpl implements IJsonManip {
 	 * Add primitive to the UI, and give them the hashcode to identify our primitive with, should they need to change the value.
 	 */
 	private void addPrimitive(String key, JsonPrimitive primitive) {
-		primitives.add(primitive);
 		originalVal.add(primitive.getAsString());
-		controller.addPair(key, primitive.getAsString(), primitives.size() - 1);
-	}
-
-	/**
-	 * Add null to the UI, and give them the hashcode to identify our primitive with, should they need to change the value.
-	 */
-	private void addNull(String key, JsonNull jsonNull) {
-		primitives.add(new JsonPrimitive("null"));
-		originalVal.add(null);
-		controller.addPair(key, "null", primitives.size() - 1);
+		for (JsonEditorPrimitive editorPrimitive : jsonEditorPrimitives) { //I'm confident there's a better way than this.
+			if (editorPrimitive.getOld() == primitive) {
+				controller.addPair(key, primitive.getAsString(), jsonEditorPrimitives.indexOf(editorPrimitive));
+				return;
+			}
+		}
 	}
 
 	/**
@@ -287,8 +246,7 @@ class JsonManipGsonImpl implements IJsonManip {
 		//If it's not present, it's probably a sub object, which isn't allowed for copies (I see no reason for it)
 		for (Map.Entry<String, JsonElement> pair : object.entrySet()) {
 			if (pair.getValue().isJsonPrimitive()) {
-				fieldList.put(pair.getValue().getAsJsonPrimitive(), pair.getKey());
-				objectList.put(pair.getValue().getAsJsonPrimitive(), object);
+				jsonEditorPrimitives.add(new JsonEditorPrimitive(pair.getValue().getAsJsonPrimitive(), object, pair.getKey()));
 			}
 			addJson(pair.getKey(), pair.getValue());
 		}
