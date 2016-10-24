@@ -9,30 +9,24 @@ import com.google.gson.JsonPrimitive;
  * To help hold together old values and new.
  * Created by mturlington on 7/27/2016.
  */
-class JsonEditorPrimitive {
-	final private JsonPrimitive oldPrimitive;
-	final private JsonObject    parent;
-	final private String        key;
+abstract class JsonEditorPrimitive {
+	final protected JsonPrimitive oldPrimitive;
 
-	JsonEditorPrimitive(JsonPrimitive old, JsonObject parent, String key) {
+	JsonEditorPrimitive(JsonPrimitive old) {
 		oldPrimitive = old;
-		this.parent = parent;
-		this.key = key;
 	}
 
 	JsonPrimitive getOld() {
 		return oldPrimitive;
 	}
 
-	void setNew(String string) {
-		parent.add(key, getNewPrimitive(string));
-	}
+	abstract void setNew(String string);
 
 	/**
 	 * Returns a new JsonPrimitive of an appropriate type, which might actually be JsonNull instead of
 	 * JsonPrimitive.
 	 */
-	private JsonElement getNewPrimitive(String newVal) {
+	protected JsonElement getNewPrimitive(String newVal) {
 		if (newVal.equals("null")) {
 			return JsonNull.INSTANCE;
 		}

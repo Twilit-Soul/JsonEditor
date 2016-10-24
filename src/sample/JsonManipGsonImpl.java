@@ -213,6 +213,9 @@ class JsonManipGsonImpl implements IJsonManip {
 	 */
 	private void addArray(String key, JsonArray array) {
 		for (int i = 0; i < array.size(); i++) {
+			if (array.get(i).isJsonPrimitive()) {
+				jsonEditorPrimitives.add(new ArrayPrimitive(array.get(i).getAsJsonPrimitive(), array, i));
+			}
 			addJson(key + "[" + i + "]", array.get(i));
 		}
 	}
@@ -244,7 +247,7 @@ class JsonManipGsonImpl implements IJsonManip {
 		//If it's not present, it's probably a sub object, which isn't allowed for copies (I see no reason for it)
 		for (Map.Entry<String, JsonElement> pair : object.entrySet()) {
 			if (pair.getValue().isJsonPrimitive()) {
-				jsonEditorPrimitives.add(new JsonEditorPrimitive(pair.getValue().getAsJsonPrimitive(), object, pair.getKey()));
+				jsonEditorPrimitives.add(new ObjectPrimitive(pair.getValue().getAsJsonPrimitive(), object, pair.getKey()));
 			}
 			addJson(pair.getKey(), pair.getValue());
 		}

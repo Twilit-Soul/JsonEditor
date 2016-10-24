@@ -97,8 +97,9 @@ public class Controller {
 		fileChooser.setTitle("Open Resource File");
 		File file = fileChooser.showOpenDialog(stage);
 		if (file != null) {
-			String filePath = file.getAbsolutePath();
-			filePathField.setText(filePath);
+			if (!savingRequired()) {
+				filePathField.setText(file.getAbsolutePath()); //Don't want to change path if not going to use it
+			}
 			retrieveJsonData();
 		}
 	}
@@ -117,9 +118,8 @@ public class Controller {
 		}
 
 		//Remove css highlight
-		for (TextField textField : textFields.values()) {
-			textField.getStyleClass().remove("modified");
-		}
+		textFields.values().parallelStream().
+				forEach(field -> field.getStyleClass().remove("modified"));
 
 		validateAllFields();
 		retrieveJsonData();
